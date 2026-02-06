@@ -2,7 +2,7 @@
 <!--
     翰墨精英 (Elite Business) - 蓝白商务表盘
     分辨率: 454x454 (HWHD02)
-    风格: 白银渐变底 + 蓝色数字/刻度 + 深蓝指针
+    风格: 白银渐变底 + 蓝色数字/刻度 + 深蓝红色双截指针
 -->
 <WatchFace dpi="454">
 
@@ -27,14 +27,7 @@
             res_id="background/numerals.png" />
     </Widget>
 
-    <!-- 层4: 内圈装饰线 -->
-    <Widget widget_type="IMAGE">
-        <Image label="inner_ring" type="static"
-            x="0" y="0" w="454" h="454"
-            res_id="background/inner_ring.png" />
-    </Widget>
-
-    <!-- 层5: 天气图标 -->
+    <!-- 层4: 天气图标 -->
     <Widget widget_type="SELECTIMAGE">
         <SelectImage label="weather_icon" type="dynamic"
             data_type="DATA_WEATHER"
@@ -156,40 +149,40 @@
             align="left" />
     </Widget>
 
-    <!-- 层19: 时针 -->
+    <!-- 层18: 时针 (18x120, 前部红色+尾部深色) -->
     <Widget widget_type="TEXTUREMAPPER">
         <TextureMapper label="hour_hand" type="dynamic"
             data_type="DATA_HOUR_PRICKER"
             center_x="227" center_y="227"
-            pivot_x="14" pivot_y="100"
+            pivot_x="9" pivot_y="90"
             start_angle="0" end_angle="360"
             res_id="hands/hour_hand.png" />
     </Widget>
 
-    <!-- 层20: 分针 -->
+    <!-- 层19: 分针 (14x155, 前部红色+尾部深色) -->
     <Widget widget_type="TEXTUREMAPPER">
         <TextureMapper label="minute_hand" type="dynamic"
             data_type="DATA_MIN_PRICKER"
             center_x="227" center_y="227"
-            pivot_x="10" pivot_y="140"
+            pivot_x="7" pivot_y="120"
             start_angle="0" end_angle="360"
             res_id="hands/minute_hand.png" />
     </Widget>
 
-    <!-- 层21: 秒针 -->
+    <!-- 层20: 秒针 (6x190, 细蓝色) -->
     <Widget widget_type="TEXTUREMAPPER">
         <TextureMapper label="second_hand" type="dynamic"
             data_type="DATA_SEC_PRICKER"
             center_x="227" center_y="227"
-            pivot_x="4" pivot_y="160"
+            pivot_x="3" pivot_y="160"
             start_angle="0" end_angle="360"
             res_id="hands/second_hand.png" />
     </Widget>
 
-    <!-- 层22: 中心装饰帽 -->
+    <!-- 层21: 中心装饰帽 (18x18) -->
     <Widget widget_type="IMAGE">
         <Image label="center_cap" type="static"
-            x="217" y="217" w="20" h="20"
+            x="218" y="218" w="18" h="18"
             res_id="background/center_cap.png" />
     </Widget>
 

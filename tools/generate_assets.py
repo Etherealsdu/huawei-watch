@@ -1,616 +1,470 @@
 #!/usr/bin/env python3
 """
 翰墨精英 (Elite Business) - 华为表盘图片资源生成器
-为 HUAWEI WATCH GT 系列生成 454x454 分辨率的表盘图片素材
-
-设计风格（参照蓝白商务表盘）：
-- 白色/银色渐变底色（中心白，边缘略灰）
-- 蓝色阿拉伯数字 1-12
-- 蓝色小圆点分钟刻度环
-- 深色指针带蓝色光泽
-- 天气信息上方居中，带竖线分隔
-- 左右两个细边框日期面板（农历+公历）
-- 居中数字时间 + 步数/距离数据行 + 心率
+精确复刻蓝白商务表盘，指针前部改为红色
 """
 
 import math
 import os
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
-# ========== 常量定义 ==========
 SIZE = 454
-CENTER = SIZE // 2
-RADIUS = SIZE // 2
+CX, CY = SIZE // 2, SIZE // 2
+R = SIZE // 2
 
-# 颜色定义 —— 蓝白商务色系
-WHITE = (255, 255, 255, 255)
-SILVER_LIGHT = (245, 245, 248, 255)
-SILVER_MID = (225, 228, 232, 255)
-SILVER_EDGE = (200, 204, 210, 255)
+# 颜色
+BLUE = (50, 85, 155, 255)
+BLUE_LIGHT = (75, 115, 180, 255)
+BLUE_DARK = (35, 60, 120, 255)
+DARK = (25, 30, 45, 255)
+DARK_TEXT = (30, 35, 50, 255)
+GRAY = (120, 125, 135, 255)
+LIGHT_GRAY = (180, 185, 195, 255)
+RED = (200, 40, 50, 255)
+RED_HEART = (210, 50, 55, 255)
+TRANS = (0, 0, 0, 0)
 
-BLUE_NUM = (45, 75, 145, 255)          # 数字蓝（阿拉伯数字）
-BLUE_DOT = (60, 95, 165, 255)          # 圆点蓝（分钟刻度）
-BLUE_TICK = (50, 80, 150, 255)         # 刻度蓝（整点刻度线）
-BLUE_BORDER = (70, 105, 170, 255)      # 边框蓝（面板边框）
-BLUE_TEXT = (55, 85, 155, 255)         # 文字蓝（面板内文字）
-BLUE_HAND = (25, 35, 60, 255)         # 指针深蓝/近黑
-BLUE_HAND_LIGHT = (50, 70, 120, 255)  # 指针蓝色高光
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RES = os.path.join(BASE, "watchface", "watchface", "res")
+PREV = os.path.join(BASE, "watchface", "preview")
+DOCS = os.path.join(BASE, "docs")
 
-DARK_TEXT = (30, 30, 40, 255)          # 深色文字（数字时间等）
-GRAY_TEXT = (110, 115, 125, 255)       # 灰色文字（辅助信息）
-LIGHT_SEP = (170, 175, 185, 255)      # 浅灰分隔线
-
-RED_HEART = (200, 50, 60, 255)        # 心率红
-TRANSPARENT = (0, 0, 0, 0)
-
-# 输出路径
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RES_DIR = os.path.join(BASE_DIR, "watchface", "watchface", "res")
-PREVIEW_DIR = os.path.join(BASE_DIR, "watchface", "preview")
-DOCS_DIR = os.path.join(BASE_DIR, "docs")
-
-
-def ensure_dirs():
-    dirs = [
-        os.path.join(RES_DIR, "background"),
-        os.path.join(RES_DIR, "hands"),
-        os.path.join(RES_DIR, "icons"),
-        os.path.join(RES_DIR, "icons", "week"),
-        os.path.join(RES_DIR, "weather"),
-        PREVIEW_DIR,
-        DOCS_DIR,
-    ]
-    for d in dirs:
-        os.makedirs(d, exist_ok=True)
+SANS = ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"]
+SANS_B = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+          "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"]
+CN = ["/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+      "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+      "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+      "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+      "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc"]
 
 
-def pt(cx, cy, r, angle_deg):
-    """圆上坐标（0度=12点方向，顺时针）"""
-    a = math.radians(angle_deg - 90)
+def font(paths, sz):
+    for p in paths:
+        if os.path.exists(p):
+            return ImageFont.truetype(p, sz)
+    return ImageFont.load_default()
+
+
+def polar(cx, cy, r, deg):
+    a = math.radians(deg - 90)
     return cx + r * math.cos(a), cy + r * math.sin(a)
 
 
-def load_font(paths, size, fallback_size=None):
-    for fp in paths:
-        if os.path.exists(fp):
-            return ImageFont.truetype(fp, size)
-    try:
-        return ImageFont.truetype("DejaVuSans", size)
-    except Exception:
-        return ImageFont.load_default()
+def dirs():
+    for d in [RES + "/background", RES + "/hands", RES + "/icons",
+              RES + "/icons/week", RES + "/weather", PREV, DOCS]:
+        os.makedirs(d, exist_ok=True)
 
 
-SANS_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-]
-SANS_BOLD_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-]
-CN_PATHS = [
-    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-]
-
-
-# ================================================================
-# 背景：白银渐变圆盘
-# ================================================================
-def generate_background():
-    img = Image.new("RGBA", (SIZE, SIZE), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-
-    # 从中心到边缘的径向渐变：白色 → 浅银色
-    for r in range(RADIUS, 0, -1):
-        t = r / RADIUS  # 1.0=边缘, 0.0=中心
-        # 边缘稍暗，中心纯白
-        gray = int(255 - t * t * 35)  # 255 → ~220
-        color = (gray, gray, min(gray + 3, 255), 255)
-        draw.ellipse(
-            [CENTER - r, CENTER - r, CENTER + r, CENTER + r],
-            fill=color
-        )
-
-    img.save(os.path.join(RES_DIR, "background", "bg_main.png"))
-    print("  [OK] bg_main.png")
+# ========== 背景：白→银渐变 ==========
+def bg():
+    img = Image.new("RGBA", (SIZE, SIZE), TRANS)
+    d = ImageDraw.Draw(img)
+    for r in range(R, 0, -1):
+        t = (r / R) ** 2
+        v = int(255 - t * 30)
+        d.ellipse([CX - r, CY - r, CX + r, CY + r], fill=(v, v, v + 2, 255))
+    img.save(f"{RES}/background/bg_main.png")
+    print("  bg_main.png")
     return img
 
 
-# ================================================================
-# 刻度环：蓝色小圆点（分钟） + 蓝色短线（整点）
-# ================================================================
-def generate_tick_ring():
-    img = Image.new("RGBA", (SIZE, SIZE), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-
-    dot_radius = RADIUS - 22  # 圆点环半径
+# ========== 刻度：小蓝方点 + 整点刻度线 ==========
+def ticks():
+    img = Image.new("RGBA", (SIZE, SIZE), TRANS)
+    d = ImageDraw.Draw(img)
+    dot_r = R - 20
 
     for i in range(60):
-        angle = i * 6
-        x, y = pt(CENTER, CENTER, dot_radius, angle)
-
+        ang = i * 6
+        x, y = polar(CX, CY, dot_r, ang)
         if i % 5 == 0:
-            # 整点位置：稍大的蓝色圆点
-            r = 3
-            draw.ellipse([x - r, y - r, x + r, y + r], fill=BLUE_DOT)
-
-            # 加一条向内的短刻度线
-            x1, y1 = pt(CENTER, CENTER, dot_radius - 8, angle)
-            x2, y2 = pt(CENTER, CENTER, dot_radius - 18, angle)
-            draw.line([(x1, y1), (x2, y2)], fill=BLUE_TICK, width=2)
+            # 整点：大方点
+            s = 3
+            d.rectangle([x - s, y - s, x + s, y + s], fill=BLUE)
+            # 内侧短线
+            x1, y1 = polar(CX, CY, dot_r - 7, ang)
+            x2, y2 = polar(CX, CY, dot_r - 16, ang)
+            d.line([(x1, y1), (x2, y2)], fill=BLUE, width=2)
         else:
-            # 分钟位置：小蓝色圆点
-            r = 1.5
-            draw.ellipse([x - r, y - r, x + r, y + r], fill=BLUE_DOT)
+            # 分钟：小方点
+            s = 1.5
+            d.rectangle([x - s, y - s, x + s, y + s], fill=BLUE_LIGHT)
 
-    img.save(os.path.join(RES_DIR, "background", "tick_ring.png"))
-    print("  [OK] tick_ring.png")
+    img.save(f"{RES}/background/tick_ring.png")
+    print("  tick_ring.png")
     return img
 
 
-# ================================================================
-# 阿拉伯数字 1-12（蓝色，无衬线）
-# ================================================================
-def generate_numerals():
-    img = Image.new("RGBA", (SIZE, SIZE), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-
-    font_num = load_font(SANS_BOLD_PATHS, 36)
-    text_r = RADIUS - 58  # 数字环半径
+# ========== 蓝色阿拉伯数字 ==========
+def nums():
+    img = Image.new("RGBA", (SIZE, SIZE), TRANS)
+    d = ImageDraw.Draw(img)
+    f = font(SANS_B, 34)
+    nr = R - 55
 
     for h in range(1, 13):
-        angle = h * 30
-        x, y = pt(CENTER, CENTER, text_r, angle)
-        text = str(h)
-        bbox = draw.textbbox((0, 0), text, font=font_num)
-        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        draw.text((x - tw / 2, y - th / 2 - 2), text,
-                  fill=BLUE_NUM, font=font_num)
+        ang = h * 30
+        x, y = polar(CX, CY, nr, ang)
+        t = str(h)
+        bb = d.textbbox((0, 0), t, font=f)
+        tw, th = bb[2] - bb[0], bb[3] - bb[1]
+        d.text((x - tw / 2, y - th / 2 - 1), t, fill=BLUE, font=f)
 
-    img.save(os.path.join(RES_DIR, "background", "numerals.png"))
-    print("  [OK] numerals.png")
+    img.save(f"{RES}/background/numerals.png")
+    print("  numerals.png")
     return img
 
 
-# ================================================================
-# 内圈细装饰环
-# ================================================================
-def generate_inner_ring():
-    img = Image.new("RGBA", (SIZE, SIZE), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-    r = RADIUS - 80
-    draw.ellipse(
-        [CENTER - r, CENTER - r, CENTER + r, CENTER + r],
-        outline=(200, 205, 215, 80), width=1
-    )
-    img.save(os.path.join(RES_DIR, "background", "inner_ring.png"))
-    print("  [OK] inner_ring.png")
+# ========== 中心帽 ==========
+def cap():
+    s = 18
+    img = Image.new("RGBA", (s, s), TRANS)
+    d = ImageDraw.Draw(img)
+    d.ellipse([0, 0, s - 1, s - 1], fill=(20, 30, 55, 255))
+    d.ellipse([2, 2, s - 3, s - 3], fill=(55, 75, 125, 255))
+    d.ellipse([5, 5, s - 6, s - 6], fill=(25, 35, 60, 255))
+    img.save(f"{RES}/background/center_cap.png")
+    print("  center_cap.png")
     return img
 
 
-# ================================================================
-# 中心装饰帽（深蓝金属感）
-# ================================================================
-def generate_center_cap():
-    s = 20
-    img = Image.new("RGBA", (s, s), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-    draw.ellipse([0, 0, s - 1, s - 1], fill=BLUE_HAND)
-    draw.ellipse([3, 3, s - 4, s - 4], fill=BLUE_HAND_LIGHT)
-    draw.ellipse([6, 6, s - 7, s - 7], fill=BLUE_HAND)
-    img.save(os.path.join(RES_DIR, "background", "center_cap.png"))
-    print("  [OK] center_cap.png")
-    return img
-
-
-# ================================================================
-# 指针 —— 经典锥形，深蓝/黑色
-# ================================================================
-def generate_hour_hand():
-    w, h = 28, 130
-    img = Image.new("RGBA", (w, h), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
+# ========== 指针 - 两截式：后半深色 + 前半红色 ==========
+def hand_hour():
+    """时针: 总长 120px, pivot在90处 (前部90px, 尾部30px)"""
+    w, h = 18, 120
+    img = Image.new("RGBA", (w, h), TRANS)
+    d = ImageDraw.Draw(img)
     cx = w // 2
-    # 主体：宽锥形
-    points = [
+
+    # 后半（下部/尾部）- 深色，较宽
+    # 从pivot(y=90)到底部(y=h)
+    d.polygon([
+        (cx - 4, h),         # 左下
+        (cx - 5, 90),        # 左侧pivot处
+        (cx + 5, 90),        # 右侧pivot处
+        (cx + 4, h),         # 右下
+    ], fill=DARK)
+
+    # 前半（上部/尖端）- 红色，锥形
+    # 从pivot(y=90)到尖端(y=0)
+    d.polygon([
         (cx, 0),             # 尖端
-        (cx + 7, h - 30),    # 右宽
-        (cx + 5, h - 10),    # 右尾
-        (cx - 5, h - 10),    # 左尾
-        (cx - 7, h - 30),    # 左宽
-    ]
-    draw.polygon(points, fill=BLUE_HAND)
-    # 中心高光线
-    draw.line([(cx, 8), (cx, h - 35)], fill=BLUE_HAND_LIGHT, width=1)
-    img.save(os.path.join(RES_DIR, "hands", "hour_hand.png"))
-    print("  [OK] hour_hand.png")
+        (cx - 5, 50),        # 左侧中段
+        (cx - 6, 90),        # 左侧最宽处
+        (cx + 6, 90),        # 右侧最宽处
+        (cx + 5, 50),        # 右侧中段
+    ], fill=RED)
+
+    # 深色中线（给前部增加细节）
+    d.line([(cx, 10), (cx, 85)], fill=(150, 25, 35, 180), width=1)
+
+    img.save(f"{RES}/hands/hour_hand.png")
+    print("  hour_hand.png")
 
 
-def generate_minute_hand():
-    w, h = 20, 170
-    img = Image.new("RGBA", (w, h), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
+def hand_min():
+    """分针: 总长 155px, pivot在120处 (前部120px, 尾部35px)"""
+    w, h = 14, 155
+    img = Image.new("RGBA", (w, h), TRANS)
+    d = ImageDraw.Draw(img)
     cx = w // 2
-    points = [
+
+    # 后半 - 深色
+    d.polygon([
+        (cx - 3, h),
+        (cx - 4, 120),
+        (cx + 4, 120),
+        (cx + 3, h),
+    ], fill=DARK)
+
+    # 前半 - 红色锥形
+    d.polygon([
         (cx, 0),
-        (cx + 5, h - 35),
-        (cx + 3, h - 10),
-        (cx - 3, h - 10),
-        (cx - 5, h - 35),
-    ]
-    draw.polygon(points, fill=BLUE_HAND)
-    draw.line([(cx, 6), (cx, h - 40)], fill=BLUE_HAND_LIGHT, width=1)
-    img.save(os.path.join(RES_DIR, "hands", "minute_hand.png"))
-    print("  [OK] minute_hand.png")
+        (cx - 3, 40),
+        (cx - 4, 120),
+        (cx + 4, 120),
+        (cx + 3, 40),
+    ], fill=RED)
+
+    d.line([(cx, 8), (cx, 115)], fill=(150, 25, 35, 180), width=1)
+
+    img.save(f"{RES}/hands/minute_hand.png")
+    print("  minute_hand.png")
 
 
-def generate_second_hand():
-    w, h = 8, 195
-    img = Image.new("RGBA", (w, h), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
+def hand_sec():
+    """秒针: 极细蓝色"""
+    w, h = 6, 190
+    img = Image.new("RGBA", (w, h), TRANS)
+    d = ImageDraw.Draw(img)
     cx = w // 2
-    # 极细蓝色秒针
-    draw.line([(cx, 0), (cx, h - 35)], fill=BLUE_HAND_LIGHT, width=1)
-    # 尾部配重
-    draw.line([(cx, h - 35), (cx, h - 8)], fill=BLUE_HAND_LIGHT, width=2)
-    draw.ellipse([cx - 3, h - 12, cx + 3, h - 6], fill=BLUE_HAND_LIGHT)
-    img.save(os.path.join(RES_DIR, "hands", "second_hand.png"))
-    print("  [OK] second_hand.png")
+    d.line([(cx, 0), (cx, 160)], fill=BLUE_LIGHT, width=1)
+    d.line([(cx, 160), (cx, h - 5)], fill=BLUE_LIGHT, width=2)
+    d.ellipse([cx - 3, h - 8, cx + 3, h - 2], fill=BLUE_LIGHT)
+    img.save(f"{RES}/hands/second_hand.png")
+    print("  second_hand.png")
 
 
-# ================================================================
-# 图标
-# ================================================================
-def generate_icon_heart():
-    s = 16
-    img = Image.new("RGBA", (s, s), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-    draw.ellipse([1, 2, 7, 8], fill=RED_HEART)
-    draw.ellipse([7, 2, 13, 8], fill=RED_HEART)
-    draw.polygon([(2, 7), (7, 13), (12, 7)], fill=RED_HEART)
-    img.save(os.path.join(RES_DIR, "icons", "ic_heart.png"))
-    print("  [OK] ic_heart.png")
+# ========== 心率图标 ==========
+def icon_heart():
+    s = 14
+    img = Image.new("RGBA", (s, s), TRANS)
+    d = ImageDraw.Draw(img)
+    d.ellipse([1, 2, 6, 7], fill=RED_HEART)
+    d.ellipse([6, 2, 11, 7], fill=RED_HEART)
+    d.polygon([(1, 6), (6, 12), (11, 6)], fill=RED_HEART)
+    img.save(f"{RES}/icons/ic_heart.png")
+    print("  ic_heart.png")
 
 
-def generate_separator():
-    img = Image.new("RGBA", (2, 20), TRANSPARENT)
-    draw = ImageDraw.Draw(img)
-    draw.line([(1, 2), (1, 18)], fill=LIGHT_SEP, width=1)
-    img.save(os.path.join(RES_DIR, "icons", "separator.png"))
-    print("  [OK] separator.png")
+# ========== 天气图标 ==========
+def weather():
+    sz = 28
+    cld = (155, 160, 170, 255)
+    sun = (235, 185, 45, 255)
+    rain = (75, 125, 195, 255)
 
-
-# ================================================================
-# 天气图标（简洁蓝灰风格）
-# ================================================================
-def generate_weather_icons():
-    size = 32
-    cloud_c = (160, 165, 175, 255)
-    sun_c = (240, 190, 50, 255)
-    rain_c = (80, 130, 200, 255)
-    snow_c = (190, 200, 220, 255)
-    fog_c = (170, 175, 185, 255)
-
-    icons = {
-        "0": "sunny", "1": "cloudy", "2": "overcast", "3": "rain",
-        "4": "snow", "5": "fog", "6": "wind", "7": "haze",
-    }
-
-    for code, name in icons.items():
-        img = Image.new("RGBA", (size, size), TRANSPARENT)
+    types = ["sunny", "cloudy", "overcast", "rain", "snow", "fog", "wind", "haze"]
+    for i, name in enumerate(types):
+        img = Image.new("RGBA", (sz, sz), TRANS)
         d = ImageDraw.Draw(img)
-
         if name == "sunny":
-            d.ellipse([8, 8, 24, 24], fill=sun_c)
+            d.ellipse([7, 7, 21, 21], fill=sun)
             for a in range(0, 360, 45):
-                x1, y1 = pt(16, 16, 10, a)
-                x2, y2 = pt(16, 16, 14, a)
-                d.line([(x1, y1), (x2, y2)], fill=sun_c, width=2)
+                p1 = polar(14, 14, 9, a)
+                p2 = polar(14, 14, 12, a)
+                d.line([p1, p2], fill=sun, width=2)
         elif name == "cloudy":
-            d.ellipse([4, 4, 16, 16], fill=sun_c)
-            d.ellipse([10, 12, 22, 22], fill=cloud_c)
-            d.ellipse([15, 9, 28, 22], fill=cloud_c)
-            d.rectangle([12, 17, 27, 24], fill=cloud_c)
+            d.ellipse([3, 3, 14, 14], fill=sun)
+            d.ellipse([9, 11, 19, 20], fill=cld)
+            d.ellipse([14, 8, 25, 19], fill=cld)
+            d.rectangle([10, 15, 24, 21], fill=cld)
         elif name == "overcast":
-            d.ellipse([3, 8, 17, 20], fill=cloud_c)
-            d.ellipse([12, 5, 28, 19], fill=cloud_c)
-            d.rectangle([8, 14, 26, 22], fill=cloud_c)
+            d.ellipse([3, 7, 15, 18], fill=cld)
+            d.ellipse([10, 4, 24, 17], fill=cld)
+            d.rectangle([7, 12, 23, 20], fill=cld)
         elif name == "rain":
-            d.ellipse([5, 3, 16, 13], fill=cloud_c)
-            d.ellipse([12, 1, 26, 13], fill=cloud_c)
-            d.rectangle([8, 8, 24, 15], fill=cloud_c)
-            for rx in [10, 16, 22]:
-                d.line([(rx, 18), (rx - 2, 27)], fill=rain_c, width=2)
+            d.ellipse([4, 2, 14, 11], fill=cld)
+            d.ellipse([10, 1, 22, 11], fill=cld)
+            d.rectangle([7, 7, 21, 13], fill=cld)
+            for rx in [9, 14, 19]:
+                d.line([(rx, 16), (rx - 1, 23)], fill=rain, width=2)
         elif name == "snow":
-            d.ellipse([5, 3, 16, 13], fill=cloud_c)
-            d.ellipse([12, 1, 26, 13], fill=cloud_c)
-            d.rectangle([8, 8, 24, 15], fill=cloud_c)
-            for sx in [10, 17, 24]:
-                d.ellipse([sx - 2, 20, sx + 2, 24], fill=snow_c)
+            d.ellipse([4, 2, 14, 11], fill=cld)
+            d.ellipse([10, 1, 22, 11], fill=cld)
+            d.rectangle([7, 7, 21, 13], fill=cld)
+            for sx in [9, 15, 21]:
+                d.ellipse([sx - 2, 17, sx + 2, 21], fill=(210, 220, 235, 255))
         elif name == "fog":
-            for fy in [8, 15, 22]:
-                d.line([(5, fy), (27, fy)], fill=fog_c, width=2)
+            for fy in [7, 13, 19]:
+                d.line([(4, fy), (24, fy)], fill=cld, width=2)
         elif name == "wind":
-            for wy, wl in [(10, 22), (17, 18), (24, 20)]:
-                d.line([(5, wy), (5 + wl, wy)], fill=fog_c, width=2)
+            for wy, wl in [(8, 18), (14, 14), (20, 16)]:
+                d.line([(4, wy), (4 + wl, wy)], fill=cld, width=2)
         elif name == "haze":
-            for hy in [7, 14, 21]:
-                d.line([(4, hy), (28, hy)], fill=(180, 170, 150, 160), width=3)
+            for hy in [6, 12, 18]:
+                d.line([(3, hy), (25, hy)], fill=(170, 160, 140, 150), width=3)
+        img.save(f"{RES}/weather/{i}.png")
+    print("  weather x8")
 
-        img.save(os.path.join(RES_DIR, "weather", f"{code}.png"))
-    print("  [OK] weather icons (8)")
 
-
-def generate_week_icons():
-    font = load_font(CN_PATHS, 14)
-    weekdays = ["一", "二", "三", "四", "五", "六", "日"]
-    for i, day in enumerate(weekdays):
-        img = Image.new("RGBA", (50, 20), TRANSPARENT)
+def week_icons():
+    f = font(CN, 13)
+    days = ["一", "二", "三", "四", "五", "六", "日"]
+    for i, day in enumerate(days):
+        img = Image.new("RGBA", (44, 18), TRANS)
         d = ImageDraw.Draw(img)
-        text = f"周{day}"
-        bbox = d.textbbox((0, 0), text, font=font)
-        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        d.text(((50 - tw) / 2, (20 - th) / 2), text, fill=BLUE_TEXT, font=font)
-        img.save(os.path.join(RES_DIR, "icons", "week", f"{i + 1}.png"))
-    print("  [OK] week icons (7)")
+        t = f"周{day}"
+        bb = d.textbbox((0, 0), t, font=f)
+        tw, th = bb[2] - bb[0], bb[3] - bb[1]
+        d.text(((44 - tw) / 2, (18 - th) / 2), t, fill=BLUE, font=f)
+        img.save(f"{RES}/icons/week/{i + 1}.png")
+    print("  week x7")
 
 
-# ================================================================
-# 完整预览图合成
-# ================================================================
-def generate_preview():
-    img = Image.new("RGBA", (SIZE, SIZE), TRANSPARENT)
+# ========== 预览图：精确复刻布局 ==========
+def preview():
+    img = Image.new("RGBA", (SIZE, SIZE), TRANS)
 
     # 叠加背景层
     for lp in ["background/bg_main.png", "background/tick_ring.png",
-               "background/numerals.png", "background/inner_ring.png"]:
-        fp = os.path.join(RES_DIR, lp)
+               "background/numerals.png"]:
+        fp = f"{RES}/{lp}"
         if os.path.exists(fp):
-            layer = Image.open(fp).convert("RGBA")
-            img = Image.alpha_composite(img, layer)
+            img = Image.alpha_composite(img, Image.open(fp).convert("RGBA"))
 
-    draw = ImageDraw.Draw(img)
+    d = ImageDraw.Draw(img)
 
     # 字体
-    fn_small = load_font(SANS_PATHS, 14)
-    fn_medium = load_font(SANS_PATHS, 16)
-    fn_bold = load_font(SANS_BOLD_PATHS, 15)
-    fn_time = load_font(SANS_BOLD_PATHS, 32)
-    fn_cn = load_font(CN_PATHS, 15)
-    fn_cn_s = load_font(CN_PATHS, 13)
-    fn_data = load_font(SANS_PATHS, 13)
+    fs = font(SANS, 13)
+    fb = font(SANS_B, 14)
+    ft = font(SANS_B, 30)   # 数字时间
+    fc = font(CN, 14)
+    fcs = font(CN, 12)
 
-    # ---- 天气区域（上方居中，12点下方）----
-    # 布局：[天气图标] [竖线] [温度 + 温度范围]
-    #                [天气描述文字]
-    weather_y = 128
-    # 天气描述文字（居中）
-    _draw_centered(draw, "晴雾", fn_cn_s, GRAY_TEXT, CENTER - 30, weather_y)
-    # 竖线分隔
-    draw.line([(CENTER - 8, weather_y + 2), (CENTER - 8, weather_y + 30)],
-              fill=LIGHT_SEP, width=1)
-    # 温度
-    _draw_text(draw, "24°C", fn_bold, DARK_TEXT, CENTER + 2, weather_y)
-    # 温度范围
-    _draw_text(draw, "-10/36", fn_small, GRAY_TEXT, CENTER + 2, weather_y + 17)
+    # ==== 天气区域（12点下方）====
+    # 左侧：晴雾
+    _ctxt(d, "晴雾", fcs, GRAY, CX - 25, 130)
+    # 竖线
+    d.line([(CX - 2, 130), (CX - 2, 158)], fill=LIGHT_GRAY, width=1)
+    # 右侧：温度
+    d.text((CX + 8, 128), "24°C", fill=DARK_TEXT, font=fb)
+    d.text((CX + 8, 144), "-10/36", fill=GRAY, font=fs)
 
-    # ---- 左面板（9点方向）：农历 / 时辰 ----
-    lp_x, lp_y = 82, 210
-    lp_w, lp_h = 108, 44
-    draw.rounded_rectangle(
-        [lp_x, lp_y, lp_x + lp_w, lp_y + lp_h],
-        radius=4, outline=BLUE_BORDER, width=1
-    )
-    # 上行：农历
-    _draw_centered(draw, "十月十八", fn_cn, BLUE_TEXT,
-                   lp_x + lp_w // 2, lp_y + 4)
-    # 分隔线
-    draw.line([(lp_x + 10, lp_y + lp_h // 2),
-               (lp_x + lp_w - 10, lp_y + lp_h // 2)],
-              fill=(180, 190, 210, 100), width=1)
-    # 下行：时辰
-    _draw_centered(draw, "巳时", fn_cn_s, GRAY_TEXT,
-                   lp_x + lp_w // 2, lp_y + 24)
+    # ==== 左面板：农历/时辰 ====
+    lx, ly, lw, lh = 78, 207, 106, 42
+    d.rounded_rectangle([lx, ly, lx + lw, ly + lh], radius=3,
+                        outline=BLUE_LIGHT, width=1)
+    _ctxt(d, "十月十八", fc, BLUE, lx + lw // 2, ly + 4)
+    d.line([(lx + 8, ly + lh // 2), (lx + lw - 8, ly + lh // 2)],
+           fill=(185, 195, 210, 80), width=1)
+    _ctxt(d, "巳时", fcs, GRAY, lx + lw // 2, ly + 23)
 
-    # ---- 右面板（3点方向）：星期 / 日期 ----
-    rp_x, rp_y = 264, 210
-    rp_w, rp_h = 108, 44
-    draw.rounded_rectangle(
-        [rp_x, rp_y, rp_x + rp_w, rp_y + rp_h],
-        radius=4, outline=BLUE_BORDER, width=1
-    )
-    _draw_centered(draw, "星期五", fn_cn, BLUE_TEXT,
-                   rp_x + rp_w // 2, rp_y + 4)
-    draw.line([(rp_x + 10, rp_y + rp_h // 2),
-               (rp_x + rp_w - 10, rp_y + rp_h // 2)],
-              fill=(180, 190, 210, 100), width=1)
-    _draw_centered(draw, "10-18", fn_medium, GRAY_TEXT,
-                   rp_x + rp_w // 2, rp_y + 24)
+    # ==== 右面板：星期/日期 ====
+    rx, ry, rw, rh = 270, 207, 106, 42
+    d.rounded_rectangle([rx, ry, rx + rw, ry + rh], radius=3,
+                        outline=BLUE_LIGHT, width=1)
+    _ctxt(d, "星期五", fc, BLUE, rx + rw // 2, ry + 4)
+    d.line([(rx + 8, ry + rh // 2), (rx + rw - 8, ry + rh // 2)],
+           fill=(185, 195, 210, 80), width=1)
+    _ctxt(d, "10-18", font(SANS, 14), GRAY, rx + rw // 2, ry + 23)
 
-    # ---- 数字时间（中下方）----
-    time_text = "10:27"
-    bbox = draw.textbbox((0, 0), time_text, font=fn_time)
-    tw = bbox[2] - bbox[0]
-    draw.text(((SIZE - tw) / 2, 278), time_text, fill=DARK_TEXT, font=fn_time)
+    # ==== 数字时间 ====
+    tt = "10:27"
+    bb = d.textbbox((0, 0), tt, font=ft)
+    tw = bb[2] - bb[0]
+    d.text(((SIZE - tw) / 2, 272), tt, fill=DARK_TEXT, font=ft)
 
-    # ---- 数据行：步数 + 距离 ----
-    data_y = 320
-    data_text = "7651 步数"
-    bbox1 = draw.textbbox((0, 0), data_text, font=fn_cn_s)
-    tw1 = bbox1[2] - bbox1[0]
+    # ==== 数据行 ====
+    data_line = "7651 步数 | 距离 3.66 km"
+    fd = font(CN, 12)
+    bb = d.textbbox((0, 0), data_line, font=fd)
+    tw = bb[2] - bb[0]
+    # 手动分段绘制以使 | 为灰色
+    left_t = "7651 步数"
+    sep_t = " | "
+    right_t = "距离 3.66 km"
+    bbl = d.textbbox((0, 0), left_t, font=fd)
+    bbs = d.textbbox((0, 0), sep_t, font=fs)
+    bbr = d.textbbox((0, 0), right_t, font=fd)
+    twl, tws, twr = bbl[2] - bbl[0], bbs[2] - bbs[0], bbr[2] - bbr[0]
+    total = twl + tws + twr
+    sx = (SIZE - total) / 2
+    dy = 312
+    d.text((sx, dy), left_t, fill=DARK_TEXT, font=fd)
+    d.text((sx + twl, dy), sep_t, fill=LIGHT_GRAY, font=fs)
+    d.text((sx + twl + tws, dy), right_t, fill=DARK_TEXT, font=fd)
 
-    sep_text = " | "
-    bbox_sep = draw.textbbox((0, 0), sep_text, font=fn_data)
-    tw_sep = bbox_sep[2] - bbox_sep[0]
+    # ==== 心率 ====
+    hy = 335
+    # 小红星/心图标
+    hicon = f"{RES}/icons/ic_heart.png"
+    if os.path.exists(hicon):
+        hi = Image.open(hicon).convert("RGBA")
+        img.paste(hi, (CX - 18, hy), hi)
+    d = ImageDraw.Draw(img)
+    d.text((CX - 2, hy), "103", fill=RED_HEART, font=fb)
 
-    dist_text = "距离 3.66 km"
-    bbox2 = draw.textbbox((0, 0), dist_text, font=fn_cn_s)
-    tw2 = bbox2[2] - bbox2[0]
+    # ==== 绘制指针 ====
+    # 时针 10:27 → (10+27/60)*30 = 313.5°
+    h_ang = (10 + 27 / 60) * 30
+    _hand2(img, CX, CY, h_ang, front=90, tail=25, fw_base=6, fw_tip=1,
+           tw=4, front_color=RED, tail_color=DARK)
 
-    total_w = tw1 + tw_sep + tw2
-    start_x = (SIZE - total_w) / 2
-    draw.text((start_x, data_y), data_text, fill=DARK_TEXT, font=fn_cn_s)
-    draw.text((start_x + tw1, data_y), sep_text, fill=LIGHT_SEP, font=fn_data)
-    draw.text((start_x + tw1 + tw_sep, data_y), dist_text,
-              fill=DARK_TEXT, font=fn_cn_s)
+    # 分针 27*6 = 162°
+    m_ang = 27 * 6
+    _hand2(img, CX, CY, m_ang, front=120, tail=30, fw_base=4, fw_tip=0.5,
+           tw=3, front_color=RED, tail_color=DARK)
 
-    # ---- 心率 ----
-    hr_y = 345
-    # 心形小图标
-    heart_icon = os.path.join(RES_DIR, "icons", "ic_heart.png")
-    if os.path.exists(heart_icon):
-        hi = Image.open(heart_icon).convert("RGBA")
-        img.paste(hi, (CENTER - 20, hr_y), hi)
-    hr_text = "103"
-    draw = ImageDraw.Draw(img)  # refresh after paste
-    draw.text((CENTER - 2, hr_y), hr_text, fill=RED_HEART, font=fn_bold)
-
-    # ---- 绘制指针 ----
-    # 时针 10:27 → (10 + 27/60)*30 = 313.5°
-    hour_angle = (10 + 27 / 60) * 30
-    _draw_tapered_hand(img, CENTER, CENTER, hour_angle,
-                       length=95, tail=18, base_w=7, tip_w=1.5,
-                       color=BLUE_HAND, highlight=BLUE_HAND_LIGHT)
-
-    # 分针 27分 → 27*6 = 162°
-    min_angle = 27 * 6
-    _draw_tapered_hand(img, CENTER, CENTER, min_angle,
-                       length=135, tail=22, base_w=5, tip_w=1,
-                       color=BLUE_HAND, highlight=BLUE_HAND_LIGHT)
-
-    # 秒针 45秒 → 270°
-    sec_angle = 45 * 6
-    _draw_thin_hand(img, CENTER, CENTER, sec_angle,
-                    length=150, tail=30, color=BLUE_HAND_LIGHT)
+    # 秒针不显示（参考图未见明显秒针）
 
     # 中心帽
-    cap_path = os.path.join(RES_DIR, "background", "center_cap.png")
-    if os.path.exists(cap_path):
-        cap = Image.open(cap_path).convert("RGBA")
-        img.paste(cap, (CENTER - 10, CENTER - 10), cap)
+    cp = f"{RES}/background/center_cap.png"
+    if os.path.exists(cp):
+        c = Image.open(cp).convert("RGBA")
+        img.paste(c, (CX - 9, CY - 9), c)
 
     # 保存
-    preview_rgb = Image.new("RGB", (SIZE, SIZE), (255, 255, 255))
-    preview_rgb.paste(img, mask=img.split()[3])
-    preview_rgb.save(os.path.join(PREVIEW_DIR, "cover.jpg"), "JPEG", quality=95)
-
-    thumb = preview_rgb.resize((120, 120), Image.Resampling.LANCZOS)
-    thumb.save(os.path.join(PREVIEW_DIR, "icon_small.jpg"), "JPEG", quality=90)
-
-    img.save(os.path.join(DOCS_DIR, "preview_full.png"))
-    print("  [OK] preview images")
-    return img
+    rgb = Image.new("RGB", (SIZE, SIZE), (255, 255, 255))
+    rgb.paste(img, mask=img.split()[3])
+    rgb.save(f"{PREV}/cover.jpg", "JPEG", quality=95)
+    rgb.resize((120, 120), Image.Resampling.LANCZOS).save(
+        f"{PREV}/icon_small.jpg", "JPEG", quality=90)
+    img.save(f"{DOCS}/preview_full.png")
+    print("  preview images")
 
 
-def _draw_text(draw, text, font, color, x, y):
-    draw.text((x, y), text, fill=color, font=font)
+def _ctxt(d, text, f, color, cx, y):
+    bb = d.textbbox((0, 0), text, font=f)
+    d.text((cx - (bb[2] - bb[0]) / 2, y), text, fill=color, font=f)
 
 
-def _draw_centered(draw, text, font, color, cx, y):
-    bbox = draw.textbbox((0, 0), text, font=font)
-    tw = bbox[2] - bbox[0]
-    draw.text((cx - tw / 2, y), text, fill=color, font=font)
-
-
-def _draw_tapered_hand(img, cx, cy, angle_deg, length, tail, base_w, tip_w,
-                       color, highlight):
-    """绘制锥形指针（宽底窄尖）"""
-    draw = ImageDraw.Draw(img)
-    a = math.radians(angle_deg - 90)
+def _hand2(img, cx, cy, angle, front, tail, fw_base, fw_tip, tw,
+           front_color, tail_color):
+    """绘制两截式指针：前部front_color + 尾部tail_color"""
+    d = ImageDraw.Draw(img)
+    a = math.radians(angle - 90)
     perp = a + math.pi / 2
 
     # 尖端
-    tip_x = cx + length * math.cos(a)
-    tip_y = cy + length * math.sin(a)
+    tip_x = cx + front * math.cos(a)
+    tip_y = cy + front * math.sin(a)
 
-    # 底部两侧（最宽处，在中心附近）
-    bl_x = cx - base_w * math.cos(perp) + 5 * math.cos(a)
-    bl_y = cy - base_w * math.sin(perp) + 5 * math.sin(a)
-    br_x = cx + base_w * math.cos(perp) + 5 * math.cos(a)
-    br_y = cy + base_w * math.sin(perp) + 5 * math.sin(a)
+    # 前部底端（pivot处）两侧
+    fb_lx = cx - fw_base * math.cos(perp)
+    fb_ly = cy - fw_base * math.sin(perp)
+    fb_rx = cx + fw_base * math.cos(perp)
+    fb_ry = cy + fw_base * math.sin(perp)
 
-    # 尖端两侧
-    tl_x = tip_x - tip_w * math.cos(perp)
-    tl_y = tip_y - tip_w * math.sin(perp)
-    tr_x = tip_x + tip_w * math.cos(perp)
-    tr_y = tip_y + tip_w * math.sin(perp)
+    # 前部尖端两侧
+    ft_lx = tip_x - fw_tip * math.cos(perp)
+    ft_ly = tip_y - fw_tip * math.sin(perp)
+    ft_rx = tip_x + fw_tip * math.cos(perp)
+    ft_ry = tip_y + fw_tip * math.sin(perp)
 
-    # 尾部
+    # 绘制前部（红色锥形）
+    d.polygon([(ft_lx, ft_ly), (fb_lx, fb_ly),
+               (fb_rx, fb_ry), (ft_rx, ft_ry)], fill=front_color)
+
+    # 尾端
     tail_x = cx - tail * math.cos(a)
     tail_y = cy - tail * math.sin(a)
-    tail_l_x = tail_x - 3 * math.cos(perp)
-    tail_l_y = tail_y - 3 * math.sin(perp)
-    tail_r_x = tail_x + 3 * math.cos(perp)
-    tail_r_y = tail_y + 3 * math.sin(perp)
+    tl_lx = tail_x - tw * math.cos(perp)
+    tl_ly = tail_y - tw * math.sin(perp)
+    tl_rx = tail_x + tw * math.cos(perp)
+    tl_ry = tail_y + tw * math.sin(perp)
 
-    # 绘制完整指针形状
-    points = [
-        (tl_x, tl_y), (bl_x, bl_y),
-        (tail_l_x, tail_l_y), (tail_r_x, tail_r_y),
-        (br_x, br_y), (tr_x, tr_y)
-    ]
-    draw.polygon(points, fill=color)
+    # 绘制尾部（深色矩形）
+    d.polygon([(fb_lx, fb_ly), (tl_lx, tl_ly),
+               (tl_rx, tl_ry), (fb_rx, fb_ry)], fill=tail_color)
 
-    # 中线高光
-    mid_x = cx + (length * 0.15) * math.cos(a)
-    mid_y = cy + (length * 0.15) * math.sin(a)
-    end_x = cx + (length * 0.85) * math.cos(a)
-    end_y = cy + (length * 0.85) * math.sin(a)
-    draw.line([(mid_x, mid_y), (end_x, end_y)], fill=highlight, width=1)
+    # 前部中心暗线
+    m1x = cx + (front * 0.1) * math.cos(a)
+    m1y = cy + (front * 0.1) * math.sin(a)
+    m2x = cx + (front * 0.9) * math.cos(a)
+    m2y = cy + (front * 0.9) * math.sin(a)
+    darker = (max(0, front_color[0] - 50), max(0, front_color[1] - 15),
+              max(0, front_color[2] - 15), 120)
+    d.line([(m1x, m1y), (m2x, m2y)], fill=darker, width=1)
 
 
-def _draw_thin_hand(img, cx, cy, angle_deg, length, tail, color):
-    """绘制细秒针"""
-    draw = ImageDraw.Draw(img)
-    a = math.radians(angle_deg - 90)
-    tip_x = cx + length * math.cos(a)
-    tip_y = cy + length * math.sin(a)
-    tail_x = cx - tail * math.cos(a)
-    tail_y = cy - tail * math.sin(a)
-    draw.line([(tail_x, tail_y), (tip_x, tip_y)], fill=color, width=1)
-
-
-# ================================================================
-# 主程序
-# ================================================================
 def main():
-    print("=" * 60)
-    print("  翰墨精英 - 蓝白商务表盘资源生成器")
-    print("  目标: 454x454 (HWHD02)")
-    print("=" * 60)
-
-    ensure_dirs()
-
-    print("\n[1/4] 背景图层...")
-    generate_background()
-    generate_tick_ring()
-    generate_numerals()
-    generate_inner_ring()
-    generate_center_cap()
-
-    print("\n[2/4] 指针...")
-    generate_hour_hand()
-    generate_minute_hand()
-    generate_second_hand()
-
-    print("\n[3/4] 图标...")
-    generate_icon_heart()
-    generate_separator()
-    generate_weather_icons()
-    generate_week_icons()
-
-    print("\n[4/4] 预览图...")
-    generate_preview()
-
-    print("\n" + "=" * 60)
-    print("  完成!")
-    print("=" * 60)
+    print("=" * 50)
+    print("  翰墨精英 - 蓝白商务表盘 (红色指针前部)")
+    print("=" * 50)
+    dirs()
+    print("\n背景...")
+    bg(); ticks(); nums(); cap()
+    print("\n指针...")
+    hand_hour(); hand_min(); hand_sec()
+    print("\n图标...")
+    icon_heart(); weather(); week_icons()
+    print("\n预览...")
+    preview()
+    print("\n完成!")
 
 
 if __name__ == "__main__":
