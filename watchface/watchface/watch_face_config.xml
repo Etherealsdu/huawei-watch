@@ -1,266 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    翰墨精英 (Elite Business) - 华为GT系列商务表盘
+    翰墨精英 (Elite Business) - 蓝白商务表盘
     分辨率: 454x454 (HWHD02)
-    设计: 罗马数字 + 金色点缀 + 白色表底 + 商务数据面板
+    风格: 白银渐变底 + 蓝色数字/刻度 + 深蓝指针
 -->
 <WatchFace dpi="454">
 
-    <!-- ==================== 层1: 表盘背景 ==================== -->
+    <!-- 层1: 白银渐变背景 -->
     <Widget widget_type="IMAGE">
         <Image label="background" type="static"
             x="0" y="0" w="454" h="454"
             res_id="background/bg_main.png" />
     </Widget>
 
-    <!-- ==================== 层2: 刻度环 ==================== -->
+    <!-- 层2: 蓝色圆点+刻度环 -->
     <Widget widget_type="IMAGE">
-        <Image label="tick_marks" type="static"
+        <Image label="tick_ring" type="static"
             x="0" y="0" w="454" h="454"
             res_id="background/tick_ring.png" />
     </Widget>
 
-    <!-- ==================== 层3: 罗马数字时标 ==================== -->
+    <!-- 层3: 蓝色阿拉伯数字 1-12 -->
     <Widget widget_type="IMAGE">
-        <Image label="roman_numerals" type="static"
+        <Image label="numerals" type="static"
             x="0" y="0" w="454" h="454"
-            res_id="background/roman_numerals.png" />
+            res_id="background/numerals.png" />
     </Widget>
 
-    <!-- ==================== 层4: 内圈装饰线 ==================== -->
+    <!-- 层4: 内圈装饰线 -->
     <Widget widget_type="IMAGE">
         <Image label="inner_ring" type="static"
             x="0" y="0" w="454" h="454"
             res_id="background/inner_ring.png" />
     </Widget>
 
-    <!-- ==================== 层5: 天气图标 (选图控件) ==================== -->
+    <!-- 层5: 天气图标 -->
     <Widget widget_type="SELECTIMAGE">
         <SelectImage label="weather_icon" type="dynamic"
             data_type="DATA_WEATHER"
-            x="165" y="118" w="40" h="40"
+            x="178" y="128" w="32" h="32"
             res_dir="weather/" />
     </Widget>
 
-    <!-- ==================== 层6: 温度显示 ==================== -->
-    <Widget widget_type="TEXTAREAWITHONEWILDCARD">
-        <TextAreaWithOneWildcard label="temperature" type="dynamic"
-            data_type="DATA_TEMPERATURE"
-            x="208" y="120" w="90" h="36"
-            font_size="28" font_color="#1A1A2E"
-            align="left" />
-    </Widget>
-
-    <!-- ==================== 层7: 天气描述文本 ==================== -->
+    <!-- 层6: 天气描述文字 -->
     <Widget widget_type="TEXTAREAWITHONEWILDCARD">
         <TextAreaWithOneWildcard label="weather_text" type="dynamic"
             data_type="DATA_WEATHER_TEXT"
-            x="165" y="158" w="130" h="24"
-            font_size="18" font_color="#666666"
+            x="165" y="128" w="56" h="20"
+            font_size="13" font_color="#6E737D"
             align="center" />
     </Widget>
 
-    <!-- ==================== 层8: 日期区域背景框 (左) ==================== -->
+    <!-- 层7: 温度显示 -->
+    <Widget widget_type="TEXTAREAWITHONEWILDCARD">
+        <TextAreaWithOneWildcard label="temperature" type="dynamic"
+            data_type="DATA_TEMPERATURE"
+            x="229" y="128" w="70" h="20"
+            font_size="15" font_color="#1E1E28"
+            align="left" />
+    </Widget>
+
+    <!-- 层8: 左面板边框 (农历/时辰) -->
     <Widget widget_type="BOX">
-        <Box label="date_bg_left" type="static"
-            x="80" y="200" w="120" h="54"
-            bg_color="#F5F0E8" border_color="#C9A96E"
-            border_width="1" corner_radius="6" />
+        <Box label="panel_left" type="static"
+            x="82" y="210" w="108" h="44"
+            bg_color="#00FFFFFF" border_color="#466AAA"
+            border_width="1" corner_radius="4" />
     </Widget>
 
-    <!-- ==================== 层9: 星期显示 ==================== -->
-    <Widget widget_type="SELECTIMAGE">
-        <SelectImage label="weekday" type="dynamic"
-            data_type="DATA_WEEK"
-            x="85" y="203" w="50" h="22"
-            res_dir="icons/week/" />
-    </Widget>
-
-    <!-- ==================== 层10: 月/日 日期显示 ==================== -->
-    <Widget widget_type="TEXTAREAWITHTWOWILDCARD">
-        <TextAreaWithTwoWildcard label="date_display" type="dynamic"
-            data_type_1="DATA_MONTH" data_type_2="DATA_DAY"
-            connector="CONN_DASH"
-            x="85" y="228" w="110" h="24"
-            font_size="20" font_color="#1A1A2E"
-            align="center" />
-    </Widget>
-
-    <!-- ==================== 层11: 日期区域背景框 (右) ==================== -->
-    <Widget widget_type="BOX">
-        <Box label="date_bg_right" type="static"
-            x="254" y="200" w="120" h="54"
-            bg_color="#F5F0E8" border_color="#C9A96E"
-            border_width="1" corner_radius="6" />
-    </Widget>
-
-    <!-- ==================== 层12: 农历日期 ==================== -->
+    <!-- 层9: 农历日期 -->
     <Widget widget_type="TEXTAREAWITHONEWILDCARD">
         <TextAreaWithOneWildcard label="lunar_date" type="dynamic"
             data_type="DATA_LUNAR"
-            x="259" y="203" w="110" h="22"
-            font_size="18" font_color="#C9A96E"
+            x="82" y="214" w="108" h="18"
+            font_size="15" font_color="#37559B"
             align="center" />
     </Widget>
 
-    <!-- ==================== 层13: 时辰显示 ==================== -->
+    <!-- 层10: 时辰 -->
     <Widget widget_type="TEXTAREAWITHONEWILDCARD">
         <TextAreaWithOneWildcard label="chinese_hour" type="dynamic"
             data_type="DATA_CHINESE_HOUR"
-            x="259" y="228" w="110" h="24"
-            font_size="18" font_color="#666666"
+            x="82" y="234" w="108" h="16"
+            font_size="13" font_color="#6E737D"
             align="center" />
     </Widget>
 
-    <!-- ==================== 层14: 数字时间显示 ==================== -->
+    <!-- 层11: 右面板边框 (星期/日期) -->
+    <Widget widget_type="BOX">
+        <Box label="panel_right" type="static"
+            x="264" y="210" w="108" h="44"
+            bg_color="#00FFFFFF" border_color="#466AAA"
+            border_width="1" corner_radius="4" />
+    </Widget>
+
+    <!-- 层12: 星期 -->
+    <Widget widget_type="SELECTIMAGE">
+        <SelectImage label="weekday" type="dynamic"
+            data_type="DATA_WEEK"
+            x="291" y="214" w="50" h="20"
+            res_dir="icons/week/" />
+    </Widget>
+
+    <!-- 层13: 月/日 -->
+    <Widget widget_type="TEXTAREAWITHTWOWILDCARD">
+        <TextAreaWithTwoWildcard label="date" type="dynamic"
+            data_type_1="DATA_MONTH" data_type_2="DATA_DAY"
+            connector="CONN_DASH"
+            x="264" y="234" w="108" h="16"
+            font_size="16" font_color="#6E737D"
+            align="center" />
+    </Widget>
+
+    <!-- 层14: 数字时间 -->
     <Widget widget_type="TEXTAREAWITHTWOWILDCARD">
         <TextAreaWithTwoWildcard label="digital_time" type="dynamic"
             data_type_1="DATA_HOUR" data_type_2="DATA_MIN"
             connector="CONN_COLON"
-            x="167" y="290" w="120" h="40"
-            font_size="36" font_color="#1A1A2E"
+            x="167" y="278" w="120" h="38"
+            font_size="32" font_color="#1E1E28"
             align="center" />
     </Widget>
 
-    <!-- ==================== 层15: 步数图标 ==================== -->
-    <Widget widget_type="IMAGE">
-        <Image label="step_icon" type="static"
-            x="105" y="340" w="20" h="20"
-            res_id="icons/ic_steps.png" />
-    </Widget>
-
-    <!-- ==================== 层16: 步数数值 ==================== -->
+    <!-- 层15: 步数数值 + 文字 -->
     <Widget widget_type="TEXTAREAWITHONEWILDCARD">
         <TextAreaWithOneWildcard label="step_count" type="dynamic"
             data_type="DATA_STEP"
-            x="128" y="340" w="70" h="20"
-            font_size="16" font_color="#1A1A2E"
-            align="left" />
+            x="120" y="320" w="80" h="16"
+            font_size="13" font_color="#1E1E28"
+            align="right" />
     </Widget>
 
-    <!-- ==================== 层17: 分隔符 ==================== -->
-    <Widget widget_type="IMAGE">
-        <Image label="separator_1" type="static"
-            x="202" y="342" w="2" h="16"
-            res_id="icons/separator.png" />
-    </Widget>
-
-    <!-- ==================== 层18: 卡路里图标 ==================== -->
-    <Widget widget_type="IMAGE">
-        <Image label="calorie_icon" type="static"
-            x="212" y="340" w="20" h="20"
-            res_id="icons/ic_calories.png" />
-    </Widget>
-
-    <!-- ==================== 层19: 卡路里数值 ==================== -->
+    <!-- 层16: 距离数值 -->
     <Widget widget_type="TEXTAREAWITHONEWILDCARD">
-        <TextAreaWithOneWildcard label="calorie_count" type="dynamic"
-            data_type="DATA_CALORIE"
-            x="235" y="340" w="60" h="20"
-            font_size="16" font_color="#1A1A2E"
-            align="left" />
-    </Widget>
-
-    <!-- ==================== 层20: 分隔符2 ==================== -->
-    <Widget widget_type="IMAGE">
-        <Image label="separator_2" type="static"
-            x="299" y="342" w="2" h="16"
-            res_id="icons/separator.png" />
-    </Widget>
-
-    <!-- ==================== 层21: 距离图标 ==================== -->
-    <Widget widget_type="IMAGE">
-        <Image label="distance_icon" type="static"
-            x="309" y="340" w="20" h="20"
-            res_id="icons/ic_distance.png" />
-    </Widget>
-
-    <!-- ==================== 层22: 距离数值 ==================== -->
-    <Widget widget_type="TEXTAREAWITHONEWILDCARD">
-        <TextAreaWithOneWildcard label="distance_value" type="dynamic"
+        <TextAreaWithOneWildcard label="distance" type="dynamic"
             data_type="DATA_DISTANCE"
-            x="332" y="340" w="60" h="20"
-            font_size="16" font_color="#1A1A2E"
+            x="254" y="320" w="80" h="16"
+            font_size="13" font_color="#1E1E28"
             align="left" />
     </Widget>
 
-    <!-- ==================== 层23: 心率图标 ==================== -->
+    <!-- 层17: 心率图标 -->
     <Widget widget_type="IMAGE">
         <Image label="heart_icon" type="static"
-            x="160" y="370" w="18" h="18"
+            x="207" y="345" w="16" h="16"
             res_id="icons/ic_heart.png" />
     </Widget>
 
-    <!-- ==================== 层24: 心率数值 ==================== -->
+    <!-- 层18: 心率数值 -->
     <Widget widget_type="TEXTAREAWITHONEWILDCARD">
         <TextAreaWithOneWildcard label="heart_rate" type="dynamic"
             data_type="DATA_HEART_RATE"
-            x="182" y="370" w="50" h="18"
-            font_size="16" font_color="#D4374A"
+            x="225" y="345" w="40" h="16"
+            font_size="15" font_color="#C8323C"
             align="left" />
     </Widget>
 
-    <!-- ==================== 层25: 电池图标 ==================== -->
-    <Widget widget_type="IMAGE">
-        <Image label="battery_icon" type="static"
-            x="244" y="370" w="18" h="18"
-            res_id="icons/ic_battery.png" />
-    </Widget>
-
-    <!-- ==================== 层26: 电池百分比 ==================== -->
-    <Widget widget_type="TEXTAREAWITHTWOWILDCARD">
-        <TextAreaWithTwoWildcard label="battery_level" type="dynamic"
-            data_type_1="DATA_BATTERY" data_type_2="DATA_NULL"
-            connector="CONN_PERCENT"
-            x="265" y="370" w="50" h="18"
-            font_size="16" font_color="#4A9B5A"
-            align="left" />
-    </Widget>
-
-    <!-- ==================== 层27: 步数进度弧 ==================== -->
-    <Widget widget_type="CIRCLE">
-        <Circle label="step_progress" type="dynamic"
-            data_type="DATA_STEP_PROGRESS"
-            cx="227" cy="227" radius="210"
-            start_angle="225" end_angle="315"
-            stroke_width="3" stroke_color="#C9A96E"
-            bg_stroke_color="#E8E0D0" />
-    </Widget>
-
-    <!-- ==================== 层28: 时针 ==================== -->
+    <!-- 层19: 时针 -->
     <Widget widget_type="TEXTUREMAPPER">
         <TextureMapper label="hour_hand" type="dynamic"
             data_type="DATA_HOUR_PRICKER"
             center_x="227" center_y="227"
-            pivot_x="14" pivot_y="115"
+            pivot_x="14" pivot_y="100"
             start_angle="0" end_angle="360"
             res_id="hands/hour_hand.png" />
     </Widget>
 
-    <!-- ==================== 层29: 分针 ==================== -->
+    <!-- 层20: 分针 -->
     <Widget widget_type="TEXTUREMAPPER">
         <TextureMapper label="minute_hand" type="dynamic"
             data_type="DATA_MIN_PRICKER"
             center_x="227" center_y="227"
-            pivot_x="10" pivot_y="150"
+            pivot_x="10" pivot_y="140"
             start_angle="0" end_angle="360"
             res_id="hands/minute_hand.png" />
     </Widget>
 
-    <!-- ==================== 层30: 秒针 ==================== -->
+    <!-- 层21: 秒针 -->
     <Widget widget_type="TEXTUREMAPPER">
         <TextureMapper label="second_hand" type="dynamic"
             data_type="DATA_SEC_PRICKER"
             center_x="227" center_y="227"
-            pivot_x="4" pivot_y="170"
+            pivot_x="4" pivot_y="160"
             start_angle="0" end_angle="360"
             res_id="hands/second_hand.png" />
     </Widget>
 
-    <!-- ==================== 层31: 表冠中心装饰 ==================== -->
+    <!-- 层22: 中心装饰帽 -->
     <Widget widget_type="IMAGE">
         <Image label="center_cap" type="static"
-            x="215" y="215" w="24" h="24"
+            x="217" y="217" w="20" h="20"
             res_id="background/center_cap.png" />
     </Widget>
 
