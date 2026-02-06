@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HwTheme>
+    <title>Elite_Business</title>
+    <title_cn>翰墨精英</title_cn>
+    <description>Elegant business watch face with Roman numerals, golden accents, and comprehensive data display</description>
+    <description_cn>优雅商务表盘，罗马数字时标，金色点缀，全面数据展示</description_cn>
+    <designer>Etherealsdu</designer>
+    <developer>Etherealsdu</developer>
+    <version>
+        <outer>1.0.0</outer>
+        <inner>1</inner>
+    </version>
+    <boardname>HWHD02</boardname>
+    <screen>
+        <resolution width="454" height="454" />
+    </screen>
+    <watchface>
+        <dpi>320</dpi>
+        <shape>circle</shape>
+    </watchface>
+    <compatibility>
+        <device>HUAWEI WATCH GT</device>
+        <device>HUAWEI WATCH GT 2</device>
+        <device>HUAWEI WATCH GT 2 Pro</device>
+        <device>HUAWEI WATCH GT 3</device>
+        <device>HUAWEI WATCH GT 3 Pro</device>
+        <device>HUAWEI WATCH GT 4</device>
+    </compatibility>
+</HwTheme>
